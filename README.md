@@ -57,3 +57,9 @@ npm run dev
 - Dangerous operations require `confirm_dangerous=true`.
 - Terminal tool blocks high-risk destructive commands.
 - All actions logged to `/divya/logs/actions.jsonl`.
+
+
+## CI Notes
+- Linux test workflow runs on Python 3.10 and 3.11.
+- Docker image build runs after Linux tests pass.
+- Numpy is pinned to `1.26.4` for `faiss-cpu==1.8.0.post1` compatibility.
