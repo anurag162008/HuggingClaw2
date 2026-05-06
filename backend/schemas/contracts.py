@@ -20,6 +20,16 @@ class MemorySearchRequest(BaseModel):
     session_id: str = "default"
     query: str
 
+class ScheduleRequest(BaseModel):
+    name: str
+    hour: int
+    minute: int
+    action: str
+    args: dict[str, Any] = Field(default_factory=dict)
+
+class TriggerRequest(BaseModel):
+    event: str
+
 class ToolResult(BaseModel):
     success: bool
     output: dict[str, Any] = Field(default_factory=dict)

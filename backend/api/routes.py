@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.schemas.contracts import ChatRequest, ExecuteRequest, AIAction, MemorySearchRequest
+from backend.schemas.contracts import ChatRequest, ExecuteRequest, AIAction, MemorySearchRequest, ScheduleRequest, TriggerRequest
 from backend.core.planner import Planner
 from backend.core.executor import Executor
 from backend.core.model_manager import ModelManager
@@ -9,6 +9,7 @@ from backend.core.config import settings
 from backend.tools.registry import ToolRegistry
 from backend.memory.store import MemoryStore
 from backend.tracking.analytics import Tracker
+from backend.automation.engine import AutomationEngine
 
 router = APIRouter()
 registry = ToolRegistry(); registry.load_plugins()
@@ -18,6 +19,7 @@ executor = Executor(registry, tracker)
 memory = MemoryStore()
 model = ModelManager(base_url=settings.base_url, api_key=settings.api_key, model_id=settings.model_id)
 orchestrator = Orchestrator(planner, model, executor, memory)
+automation = AutomationEngine(); automation.start()
 
 @router.post("/chat")
 def chat(req: ChatRequest):
@@ -39,6 +41,18 @@ def memory_search(req: MemorySearchRequest):
 @router.get('/analytics')
 def analytics():
     return tracker.analytics()
+
+@router.post('/automation/schedule')
+def schedule(req: ScheduleRequest):
+    def _job():
+        executor.execute_steps([AIAction(thought=f"Scheduled job {req.name}", action=req.action, args=req.args)], confirm_dangerous=True)
+    automation.schedule_daily(req.hour, req.minute, _job)
+    return {"scheduled": True, "name": req.name, "time": f"{req.hour:02d}:{req.minute:02d}"}
+
+@router.post('/automation/trigger')
+def trigger(req: TriggerRequest):
+    automation.emit_event(req.event)
+    return {"triggered": req.event}
 
 @router.get("/tools")
 def tools():
