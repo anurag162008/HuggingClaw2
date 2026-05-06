@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.schemas.contracts import ChatRequest, ExecuteRequest, AIAction
+from backend.schemas.contracts import ChatRequest, ExecuteRequest, AIAction, MemorySearchRequest
 from backend.core.planner import Planner
 from backend.core.executor import Executor
 from backend.core.model_manager import ModelManager
@@ -31,6 +31,14 @@ def workflow(req: ChatRequest):
 def execute(req: ExecuteRequest):
     step = AIAction(thought="Direct execute request", action=req.action, args=req.args)
     return {"result": executor.execute_steps([step], confirm_dangerous=req.confirm_dangerous)}
+
+@router.post('/memory/search')
+def memory_search(req: MemorySearchRequest):
+    return {"matches": memory.search_memory(req.session_id, req.query)}
+
+@router.get('/analytics')
+def analytics():
+    return tracker.analytics()
 
 @router.get("/tools")
 def tools():

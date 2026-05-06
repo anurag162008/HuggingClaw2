@@ -9,21 +9,19 @@ class FileTool(Tool):
     description = "read_file/write_file/list_dir/move_file/delete_file/search_files"
     permission = PermissionLevel.MEDIUM
 
-    def read_file(self, path: str) -> dict: return {"content": Path(path).read_text(encoding="utf-8")}
-    def write_file(self, path: str, content: str) -> dict: Path(path).write_text(content, encoding="utf-8"); return {"written": True}
-    def list_dir(self, path: str = ".") -> dict: return {"items": os.listdir(path)}
-    def move_file(self, src: str, dst: str) -> dict: shutil.move(src, dst); return {"moved": True}
-    def delete_file(self, path: str) -> dict: Path(path).unlink(missing_ok=True); return {"deleted": True}
+    def read_file(self, path: str) -> dict: return {"content": Path(path).expanduser().read_text(encoding="utf-8")}
+    def write_file(self, path: str, content: str) -> dict: Path(path).expanduser().write_text(content, encoding="utf-8"); return {"written": True}
+    def list_dir(self, path: str = ".") -> dict: return {"items": os.listdir(Path(path).expanduser())}
+    def move_file(self, src: str, dst: str) -> dict: shutil.move(str(Path(src).expanduser()), str(Path(dst).expanduser())); return {"moved": True}
+    def delete_file(self, path: str) -> dict: Path(path).expanduser().unlink(missing_ok=True); return {"deleted": True}
     def search_files(self, query: str) -> dict: return {"matches": glob.glob(f"**/*{query}*", recursive=True)}
-
-    def run(self, **kwargs) -> dict:
-        return getattr(self, kwargs.pop("op"))(**kwargs)
+    def run(self, **kwargs) -> dict: return getattr(self, kwargs.pop("op"))(**kwargs)
 
 class TerminalTool(Tool):
     name="run_command"; description="Run terminal command"; permission=PermissionLevel.DANGEROUS
-    BLOCKLIST = ["rm -rf /", "mkfs", "shutdown", "reboot", ":(){:|:&};:"]
+    BLOCKLIST = ["rm -rf /", "mkfs", "shutdown", "reboot", ":(){:|:&};:", "dd if="]
     def run(self, **kwargs)->dict:
-        cmd = kwargs["command"]
+        cmd = kwargs["command"].strip()
         if any(b in cmd for b in self.BLOCKLIST): raise ValueError("Blocked command")
         p = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=20)
         return {"stdout": p.stdout, "stderr": p.stderr, "code": p.returncode}

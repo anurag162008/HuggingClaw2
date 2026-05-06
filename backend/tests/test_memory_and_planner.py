@@ -12,3 +12,8 @@ def test_planner_returns_structured_actions():
     steps = Planner().plan('clean desktop')
     assert len(steps) >= 1
     assert all(hasattr(s, 'thought') and hasattr(s, 'action') for s in steps)
+
+
+def test_planner_handles_organize_downloads():
+    steps = Planner().plan('organize my downloads')
+    assert steps[0].action == 'list_dir'
