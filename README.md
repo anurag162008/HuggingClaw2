@@ -2,16 +2,12 @@
 
 DivyaOS is an AI-native operating environment on Linux with chat-first control.
 
-## What is now complete
-- ✅ FastAPI backend with orchestration and modular tool execution
-- ✅ AI action format (`thought`, `action`, `args`) across planner/model/executor
-- ✅ Tool system: file, terminal, app control, browser, clipboard, notifications
-- ✅ DivyaFS primitives with SQLite metadata and FAISS hooks
-- ✅ Memory: short-term (session) + persistent long-term
-- ✅ Tracking + action logs
-- ✅ Automation engine (time and event triggers)
-- ✅ Plugin loading with sample plugin (`echo_plugin`)
-- ✅ React + Tauri GUI shell with Chat, File Explorer, Dashboard, Floating Assistant
+## Completed now
+- FastAPI backend with endpoints: chat/workflow/execute/tools/analytics/memory search/health/ready.
+- Planner → ModelManager → Executor orchestrated flow.
+- Mandatory tool system (file/terminal/app/browser/clipboard/notification).
+- DivyaFS + memory + tracking + automation + plugin loading.
+- React + Tauri UI shell with Chat, Dashboard, File Explorer, Floating Assistant.
 
 ## API
 - `GET /healthz`
@@ -20,22 +16,24 @@ DivyaOS is an AI-native operating environment on Linux with chat-first control.
 - `POST /chat`
 - `POST /workflow`
 - `POST /execute`
+- `POST /memory/search`
+- `GET /analytics`
 - `GET /tools`
 
-## Launch backend
+## Launch
 ```bash
 pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload
 ```
 
-## Launch GUI
 ```bash
 cd gui
 npm install
 npm run dev
 ```
 
-## Production safety
+## Safety and behavior
+- Structured AI action format: `{"thought":"...","action":"tool_name","args":{}}`
 - Dangerous operations require `confirm_dangerous=true`.
-- All actions are logged to `/divya/logs/actions.jsonl`.
-- Run readiness checks before launch: `/readyz` and `/launch-check`.
+- Terminal tool blocks high-risk destructive commands.
+- All actions logged to `/divya/logs/actions.jsonl`.

@@ -16,6 +16,10 @@ class ExecuteRequest(BaseModel):
     args: dict[str, Any] = Field(default_factory=dict)
     confirm_dangerous: bool = False
 
+class MemorySearchRequest(BaseModel):
+    session_id: str = "default"
+    query: str
+
 class ToolResult(BaseModel):
     success: bool
     output: dict[str, Any] = Field(default_factory=dict)
