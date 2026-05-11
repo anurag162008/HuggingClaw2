@@ -158,6 +158,7 @@ HuggingClaw automatically syncs your workspace (chats, settings, sessions) to a 
 | `HF_TOKEN` | — | HF token with **Write** access |
 | `SYNC_INTERVAL` | `180` | Backup frequency in seconds |
 | `CONFIG_PERSIST_INTERVAL` | `10` | Interval (seconds) for persisting runtime WebUI config changes back through gateway RPC |
+| `CONFIG_PERSIST_PATH` | `/home/node/.openclaw/openclaw.json` | Target file path for writing persisted runtime config snapshots |
 
 ## 💓 Staying Alive *(Recommended on Free HF Spaces)*
 
