@@ -541,6 +541,15 @@ STARTUP_FILE="/home/node/.openclaw/workspace/startup.sh"
 HC_CAPTURE_SCRIPT="/home/node/.openclaw/huggingclaw-capture.sh"
 mkdir -p "$(dirname "$HC_CAPTURE_SCRIPT")"
 cat > "$HC_CAPTURE_SCRIPT" << 'PROFILE'
+_hc_append() {
+  local line="$*"
+  grep -qxF "$line" "$STARTUP_FILE" 2>/dev/null || {
+    echo "$line" >> "$STARTUP_FILE"
+    # Background me turant sync karo — package install ke baad immediately save
+    python3 /home/node/app/openclaw-sync.py sync-once >/dev/null 2>&1 &
+  }
+}
+[ -z "$BASH_VERSION" ] && return 0 2>/dev/null || exit 0
 STARTUP_FILE="/home/node/.openclaw/workspace/startup.sh"
 _hc_append() {
   local line="$*"
