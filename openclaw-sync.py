@@ -57,6 +57,7 @@ EXCLUDED_STATE_NAMES = {
     "workspace",
     "openclaw-app",
     "gateway.log",
+    "startup.log",
     "browser",
 }
 WHATSAPP_CREDS_DIR = OPENCLAW_HOME / "credentials" / "whatsapp" / "default"

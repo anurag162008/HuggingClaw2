@@ -42,7 +42,16 @@ RUN apt-get update && apt-get install -y \
     xfonts-scalable \
     --no-install-recommends && \
     pip3 install --no-cache-dir --break-system-packages huggingface_hub && \
+    apt-get install -y sudo && \
+    echo "node ALL=(ALL) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt" \
+    > /etc/sudoers.d/node-apt && \
+    chmod 0440 /etc/sudoers.d/node-apt && \
     rm -rf /var/lib/apt/lists/*
+
+# npm global prefix — user-writable directory
+RUN mkdir -p /home/node/.npm-global && \
+    chown 1000:1000 /home/node/.npm-global && \
+    npm config set prefix '/home/node/.npm-global'
 
 # Reuse existing node user (UID 1000)
 RUN mkdir -p /home/node/app /home/node/.openclaw && \
@@ -79,7 +88,7 @@ USER node
 
 ENV HOME=/home/node \
     OPENCLAW_VERSION=${OPENCLAW_VERSION} \
-    PATH=/home/node/.local/bin:/usr/local/bin:$PATH \
+    PATH=/home/node/.npm-global/bin:/home/node/.local/bin:/usr/local/bin:$PATH \
     NODE_PATH=/home/node/browser-deps/node_modules \
     NODE_OPTIONS="--require /opt/cloudflare-proxy.js"
 

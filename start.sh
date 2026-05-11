@@ -546,12 +546,19 @@ _hc_append() {
   local line="$*"
   grep -qxF "$line" "$STARTUP_FILE" 2>/dev/null || echo "$line" >> "$STARTUP_FILE"
 }
-apt-get() { command apt-get "$@"; [[ "$1" == "install" ]] && _hc_append "apt-get install -y ${@:2}"; }
-apt()     { command apt "$@";     [[ "$1" == "install" ]] && _hc_append "apt-get install -y ${@:2}"; }
+apt-get() { command sudo apt-get "$@"; [[ "$1" == "install" ]] && _hc_append "sudo apt-get install -y ${@:2}"; }
+apt()     { command sudo apt "$@";     [[ "$1" == "install" ]] && _hc_append "sudo apt-get install -y ${@:2}"; }
 pip()     { command pip "$@";     [[ "$1" == "install" ]] && _hc_append "pip install ${@:2}"; }
 pip3()    { command pip3 "$@";    [[ "$1" == "install" ]] && _hc_append "pip3 install ${@:2}"; }
 pipx()    { command pipx "$@";    [[ "$1" == "install" ]] && _hc_append "pipx install ${@:2}"; }
-npm()     { command npm "$@";     [[ "$1" == "install" && "$2" == "-g" ]] && _hc_append "npm install -g ${@:3}"; }
+npm() {
+  if [[ "$1" == "install" && "$2" == "-g" ]]; then
+    command npm --prefix /home/node/.npm-global "$@"
+    _hc_append "npm --prefix /home/node/.npm-global install -g ${@:3}"
+  else
+    command npm "$@"
+  fi
+}
 yarn()    { command yarn "$@";    [[ "$1" == "global" && "$2" == "add" ]] && _hc_append "yarn global add ${@:3}"; }
 pnpm()    { command pnpm "$@";    [[ "$1" == "install" && "$2" == "-g" ]] && _hc_append "pnpm install -g ${@:3}"; [[ "$1" == "add" && "$2" == "-g" ]] && _hc_append "pnpm add -g ${@:3}"; }
 brew()    { command brew "$@";    [[ "$1" == "install" ]] && _hc_append "brew install ${@:2}"; }
@@ -599,8 +606,8 @@ if [ ! -f "$STARTUP_FILE" ]; then
 fi
 if [ -s "$STARTUP_FILE" ]; then
   echo "Running workspace/startup.sh..."
-  bash "$STARTUP_FILE" || echo "Warning: startup.sh had errors, continuing..."
-  echo "Startup script complete."
+  bash -x "$STARTUP_FILE" 2>&1 | tee -a /home/node/.openclaw/startup.log \
+    || echo "Warning: startup.sh had errors — check /home/node/.openclaw/startup.log"
 fi
 
 # ── Launch gateway ──
