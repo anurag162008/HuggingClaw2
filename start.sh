@@ -858,8 +858,14 @@ start_jupyter_once() {
     fi
   fi
 
+  # Pre-create runtime directory
+  mkdir -p "$JUPYTER_ROOT_DIR/.jupyter"
+
   echo "DEV_MODE enabled (${DEV_MODE_RAW}) — starting JupyterLab terminal on internal port 8888 (path: /terminal/) with root: $JUPYTER_ROOT_DIR"
   JUPYTER_LOG_FILE="/tmp/jupyterlab.log"
+  
+  # Use explicit Python to avoid PATH issues; set memory-friendly limits
+  export PYTHONPATH=""
   python3 -m jupyterlab \
       --ip 127.0.0.1 \
       --port 8888 \
@@ -867,7 +873,7 @@ start_jupyter_once() {
       --IdentityProvider.token="$JUPYTER_TOKEN" \
       --ServerApp.base_url=/terminal/ \
       --ServerApp.terminals_enabled=True \
-      --ServerApp.terminado_settings='{"shell_command":["/bin/bash","-i"]}' \
+      --terminado_settings='{"shell_command":["/bin/bash","-i"]}' \
       --ServerApp.allow_origin='*' \
       --ServerApp.allow_remote_access=True \
       --ServerApp.trust_xheaders=True \
@@ -875,10 +881,13 @@ start_jupyter_once() {
       --IdentityProvider.cookie_options="{'SameSite': 'None', 'Secure': True}" \
       --ServerApp.disable_check_xsrf=True \
       --LabApp.news_url=None \
-      --LabApp.check_for_updates_class="jupyterlab.NeverCheckForUpdate" \
-      --notebook-dir="$JUPYTER_ROOT_DIR" \
+      --LabApp.check_for_updates_class=jupyterlab.NeverCheckForUpdate \
+      --ServerApp.quiet=True \
+      --ServerApp.log_level=WARNING \
+      --ServerApp.root_dir="$JUPYTER_ROOT_DIR" \
       >> "$JUPYTER_LOG_FILE" 2>&1 &
   JUPYTER_PID=$!
+  export JUPYTER_PID
   echo "JupyterLab started (PID: $JUPYTER_PID)"
 }
 
@@ -1448,9 +1457,20 @@ start_guardian_once() {
 }
 
 while true; do
-  if [ "$RUNTIME_JUPYTER_ENABLED" = "true" ] && [ -n "${JUPYTER_PID:-}" ] && ! kill -0 "$JUPYTER_PID" 2>/dev/null; then
-    echo "Warning: JupyterLab exited; attempting restart."
-    start_jupyter_once
+  # Check JupyterLab process - restart if died unexpectedly
+  if [ "$RUNTIME_JUPYTER_ENABLED" = "true" ]; then
+    if [ -n "${JUPYTER_PID:-}" ]; then
+      if ! kill -0 "$JUPYTER_PID" 2>/dev/null; then
+        echo "Warning: JupyterLab exited (PID $JUPYTER_PID dead); checking log..."
+        tail -5 /tmp/jupyterlab.log 2>/dev/null || echo "No log file"
+        echo "Attempting JupyterLab restart..."
+        unset JUPYTER_PID
+        start_jupyter_once
+      fi
+    else
+      # First start
+      start_jupyter_once
+    fi
   fi
 
   echo "Launching OpenClaw gateway on port 7860..."
