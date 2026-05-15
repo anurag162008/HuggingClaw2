@@ -13,6 +13,13 @@ trim_var() {
   printf '%s' "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
 }
 
+hc_is_true() {
+  case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 load_env_bundle() {
   # HUGGINGCLAW_ENV_BUNDLE is a single base64url-encoded JSON object generated
   # by /env-builder. Existing individual env vars win over bundled values.
@@ -52,12 +59,19 @@ load_env_bundle
 # do not block updates or cause stale comparisons/merges.
 LLM_MODEL="$(trim_var "${LLM_MODEL:-}")"
 GATEWAY_TOKEN="$(trim_var "${GATEWAY_TOKEN:-}")"
-SPACE_HOST="$(trim_var "${SPACE_HOST:-}")"
 OPENCLAW_PASSWORD="$(trim_var "${OPENCLAW_PASSWORD:-}")"
 LLM_API_KEY="$(trim_var "${LLM_API_KEY:-}")"
 CLOUDFLARE_PROXY_URL="$(trim_var "${CLOUDFLARE_PROXY_URL:-}")"
 
 OPENCLAW_VERSION="${OPENCLAW_VERSION:-latest}"
+APP_BASE="$(trim_var "${APP_BASE:-/app}")"
+JUPYTER_BASE="$(trim_var "${JUPYTER_BASE:-/terminal}")"
+PORT="$(trim_var "${PORT:-7861}")"
+GATEWAY_PORT="$(trim_var "${GATEWAY_PORT:-7860}")"
+JUPYTER_PORT="$(trim_var "${JUPYTER_PORT:-8888}")"
+BACKUP_DATASET_NAME="$(trim_var "${BACKUP_DATASET_NAME:-${BACKUP_DATASET:-huggingclaw-backup}}")"
+SPACE_AUTHOR_NAME="$(trim_var "${SPACE_AUTHOR_NAME:-}")"
+SPACE_HOST="$(trim_var "${SPACE_HOST:-}")"
 OPENCLAW_APP_DIR="/home/node/.openclaw/openclaw-app"
 OPENCLAW_RUNTIME_VERSION=""
 OPENCLAW_FILE_LOG_LEVEL_CONFIGURED=false
@@ -73,20 +87,18 @@ WHATSAPP_ENABLED_NORMALIZED=$(printf '%s' "$WHATSAPP_ENABLED" | tr '[:upper:]' '
 DEV_MODE_RAW="${DEV_MODE:-false}"
 DEV_MODE_NORMALIZED=$(printf '%s' "$DEV_MODE_RAW" | tr '[:upper:]' '[:lower:]')
 DEV_MODE_ENABLED=false
-case "$DEV_MODE_NORMALIZED" in
-  true|1|yes|on) DEV_MODE_ENABLED=true ;;
-  *) DEV_MODE_ENABLED=false ;;
-esac
+if hc_is_true "$DEV_MODE_NORMALIZED"; then
+  DEV_MODE_ENABLED=true
+fi
 SYNC_INTERVAL="$(trim_var "${SYNC_INTERVAL:-180}")"
-BACKUP_DATASET_NAME="$(trim_var "${BACKUP_DATASET_NAME:-huggingclaw-backup}")"
 DEVDATA_DATASET_NAME="$(trim_var "${DEVDATA_DATASET_NAME:-huggingclaw-devdata}")"
 DEVDATA_SYNC_INTERVAL="$(trim_var "${DEVDATA_SYNC_INTERVAL:-180}")"
 DEVDATA_RAW="$(trim_var "${DEVDATA:-on}")"
 DEVDATA_NORMALIZED=$(printf '%s' "$DEVDATA_RAW" | tr '[:upper:]' '[:lower:]')
 DEVDATA_ENABLED=true
-case "$DEVDATA_NORMALIZED" in
-  off|false|0|no) DEVDATA_ENABLED=false ;;
-esac
+if ! hc_is_true "$DEVDATA_NORMALIZED"; then
+  DEVDATA_ENABLED=false
+fi
 if [ -n "${SPACE_HOST:-}" ]; then
   OPENCLAW_CONSOLE_LOG_LEVEL="${OPENCLAW_CONSOLE_LOG_LEVEL:-warn}"
   OPENCLAW_FILE_LOG_LEVEL="${OPENCLAW_FILE_LOG_LEVEL:-info}"
