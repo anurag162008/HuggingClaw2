@@ -760,6 +760,14 @@ RUNTIME_JUPYTER_ENABLED="$DEV_MODE_ENABLED"
 # Add user bin to PATH for jupyter-lab (installed in Dockerfile when DEV_MODE=true)
 export PATH="$HOME/.local/bin:$PATH"
 
+# Fix: reinstall jsonschema if it is broken (circular import caused by partial install)
+if [ "$DEV_MODE_ENABLED" = "true" ]; then
+  if ! python3 -c "import jsonschema" >/dev/null 2>&1; then
+    echo "jsonschema import failed — reinstalling..."
+    python3 -m pip install --force-reinstall --no-cache-dir --break-system-packages "jsonschema>=4.0" >/dev/null 2>&1 || true
+  fi
+fi
+
 # Runtime install fallback: only attempt if DEV_MODE is enabled but install failed during build
 if [ "$DEV_MODE_ENABLED" = "true" ] && ! python3 -c "import jupyterlab" >/dev/null 2>&1; then
   echo "DEV_MODE enabled but jupyter-lab is missing; attempting runtime install..."
