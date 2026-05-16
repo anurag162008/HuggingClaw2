@@ -1561,6 +1561,7 @@ while true; do
     fi
   fi
 
+  openclaw doctor --fix || true
   echo "Launching OpenClaw gateway on port 7860..."
 
   GATEWAY_ARGS=(gateway run --port 7860 --bind lan)
@@ -1597,7 +1598,9 @@ while true; do
     echo "Gateway failed to start. Last 30 lines of log:"
     echo "────────────────────────────────────────────"
     tail -30 /home/node/.openclaw/gateway.log
-    exit 1
+    echo "Gateway failed — JupyterLab and env-builder still running. Retrying in 10s..."
+    sleep 10
+    continue
   fi
 
   # 11. Start WhatsApp Guardian after the gateway is accepting connections
@@ -1622,7 +1625,8 @@ while true; do
   GATEWAY_RESTART_COUNT=$((GATEWAY_RESTART_COUNT + 1))
   if [ "$GATEWAY_MAX_RESTARTS" != "0" ] && [ "$GATEWAY_RESTART_COUNT" -ge "$GATEWAY_MAX_RESTARTS" ]; then
     echo "Gateway exited with code ${GATEWAY_EXIT_CODE}; restart limit (${GATEWAY_MAX_RESTARTS}) reached."
-    exit "$GATEWAY_EXIT_CODE"
+    echo "Gateway stopped — JupyterLab and env-builder still running."
+    break
   fi
 
   echo "Gateway exited with code ${GATEWAY_EXIT_CODE}; restarting in ${GATEWAY_RESTART_DELAY}s..."
