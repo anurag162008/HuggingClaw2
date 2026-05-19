@@ -739,6 +739,7 @@ if [ -f "$EXISTING_CONFIG" ]; then
     '(.channels.whatsapp // {}) as $existingWhatsapp
      | .gateway.auth.token = $token
      | .agents.defaults.model = $model
+     | .gateway.port = ($desired.gateway.port // .gateway.port)
      | if $fileLogConfigured then .logging.level = $fileLevel else . end
      | if $consoleLogConfigured then .logging.consoleLevel = $consoleLevel else . end
      | if $consoleStyleConfigured then .logging.consoleStyle = $consoleStyle else . end

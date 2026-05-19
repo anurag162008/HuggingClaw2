@@ -17,7 +17,8 @@ try {
 }
 const { randomUUID } = require('node:crypto');
 
-const GATEWAY_URL = "ws://127.0.0.1:7860";
+const GATEWAY_PORT = Number.parseInt(process.env.GATEWAY_PORT || "7860", 10);
+const GATEWAY_URL = `ws://127.0.0.1:${GATEWAY_PORT}`;
 const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || "huggingclaw";
 const WHATSAPP_ENABLED = /^true$/i.test(process.env.WHATSAPP_ENABLED || "");
 const CHECK_INTERVAL = 30000;
