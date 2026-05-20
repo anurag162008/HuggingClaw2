@@ -1033,6 +1033,11 @@ start_jupyter_once() {
       ln -sfn /home/node/.openclaw/workspace "$JUPYTER_ROOT_DIR/HuggingClaw-Workspace"
     fi
   fi
+  if [ "$JUPYTER_ROOT_DIR" != "/home/node/.openclaw" ]; then
+    if [ -L "$JUPYTER_ROOT_DIR/OpenClaw-Home" ] || [ ! -e "$JUPYTER_ROOT_DIR/OpenClaw-Home" ]; then
+      ln -sfn /home/node/.openclaw "$JUPYTER_ROOT_DIR/OpenClaw-Home"
+    fi
+  fi
 
   # Pre-create runtime directory
   mkdir -p "$JUPYTER_ROOT_DIR/.jupyter"

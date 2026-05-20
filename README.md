@@ -177,6 +177,7 @@ HuggingClaw automatically syncs your workspace (chats, settings, sessions) to a 
 | `SYNC_INTERVAL` | `180` | Full backup frequency in seconds |
 | `OPENCLAW_CONFIG_WATCH_INTERVAL` | `1` | How often to check `openclaw.json` for immediate settings sync |
 | `OPENCLAW_CONFIG_SETTLE_SECONDS` | `3` | How long `openclaw.json` must stay valid and unchanged before syncing |
+| `SESSIONS_MIN_SYNC_GAP` | `30` | Minimum seconds between session-triggered immediate syncs |
 
 ## 📦 Ephemeral Package Re-install *(Optional)*
 
@@ -370,7 +371,7 @@ The merged Space includes the Hugging Face JupyterLab template behavior inside t
 | `/app/` | OpenClaw Control UI | `7860` | Mounted behind the local reverse proxy |
 | `/terminal/` | JupyterLab terminal | `8888` | Auto-enabled when `GATEWAY_TOKEN` is set; uses `GATEWAY_TOKEN` as auth token unless `JUPYTER_TOKEN` is set separately. Set `DEV_MODE=false` to disable. |
 
-When enabled, the terminal notebook root is `/home/node`, so you can inspect HuggingClaw files, logs, workspace state, and runtime scripts from the browser.
+When enabled, the terminal notebook root defaults to `/home/node` (stable + writable by default). To browse a broader tree, set `JUPYTER_ROOT_DIR=/home`. Handy shortcuts are also created: `HuggingClaw`, `HuggingClaw-Workspace`, and `OpenClaw-Home`.
 
 > [!IMPORTANT]
 > No extra secret needed — `GATEWAY_TOKEN` is automatically reused as `JUPYTER_TOKEN`. Set a separate `JUPYTER_TOKEN` secret only if you want a different terminal credential.
