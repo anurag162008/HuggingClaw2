@@ -115,6 +115,11 @@ def copy_state_entry_with_retry(source_path: Path, backup_path: Path, attempts: 
     last_exc: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
+            if backup_path.exists():
+                if backup_path.is_dir():
+                    shutil.rmtree(backup_path, ignore_errors=True)
+                else:
+                    backup_path.unlink(missing_ok=True)
             if source_path.is_dir():
                 shutil.copytree(source_path, backup_path)
                 return
@@ -143,7 +148,10 @@ def snapshot_state_into_workspace() -> None:
         staging_dir = STATE_DIR / ".openclaw-staging"
         if staging_dir.exists():
             shutil.rmtree(staging_dir, ignore_errors=True)
-        staging_dir.mkdir(parents=True, exist_ok=True)
+        if OPENCLAW_STATE_BACKUP_DIR.exists():
+            shutil.copytree(OPENCLAW_STATE_BACKUP_DIR, staging_dir)
+        else:
+            staging_dir.mkdir(parents=True, exist_ok=True)
 
         skipped_entries: list[tuple[str, Exception]] = []
         for source_path in OPENCLAW_HOME.iterdir():
@@ -156,21 +164,19 @@ def snapshot_state_into_workspace() -> None:
             except Exception as entry_exc:
                 skipped_entries.append((source_path.name, entry_exc))
 
-        # If any top-level state entries could not be copied, keep the
-        # previous known-good snapshot instead of replacing it with a partial
-        # backup. We'll retry next pass.
+        # If any top-level state entries could not be copied, keep the last
+        # known-good version for only those entries (staging was seeded from
+        # previous backup). This preserves forward progress for the rest.
         if skipped_entries:
             for name, entry_exc in skipped_entries:
-                print(f"Warning: skipping state entry {name}: {entry_exc}")
+                print(f"Warning: keeping previous state entry {name}: {entry_exc}")
             print(
-                "Warning: OpenClaw state snapshot incomplete; keeping previous backup and retrying next sync."
+                "Warning: OpenClaw state snapshot had copy failures; updated remaining state entries."
             )
-            shutil.rmtree(staging_dir, ignore_errors=True)
-        else:
-            # Atomically swap staging → real backup dir
-            if OPENCLAW_STATE_BACKUP_DIR.exists():
-                shutil.rmtree(OPENCLAW_STATE_BACKUP_DIR, ignore_errors=True)
-            staging_dir.rename(OPENCLAW_STATE_BACKUP_DIR)
+        # Atomically swap staging → real backup dir
+        if OPENCLAW_STATE_BACKUP_DIR.exists():
+            shutil.rmtree(OPENCLAW_STATE_BACKUP_DIR, ignore_errors=True)
+        staging_dir.rename(OPENCLAW_STATE_BACKUP_DIR)
     except Exception as exc:
         # Clean up staging on failure so it doesn't interfere next time
         staging_dir = STATE_DIR / ".openclaw-staging"
@@ -632,14 +638,15 @@ def wait_for_sync_trigger(
         if current_config_marker != config_marker:
             return wait_for_config_settle(current_config_marker)
 
-        if time.monotonic() - last_sessions_sync_time < SESSIONS_MIN_SYNC_GAP:
-            continue
-
-        # Sessions changed -> trigger sync immediately (no settle needed;
-        # session files are written atomically by OpenClaw).
-        current_sessions_marker = sessions_marker()
-        if current_sessions_marker != last_sessions_marker:
-            return ("sessions", current_config_marker)
+        sessions_gap_elapsed = (
+            time.monotonic() - last_sessions_sync_time >= SESSIONS_MIN_SYNC_GAP
+        )
+        if sessions_gap_elapsed:
+            # Sessions changed -> trigger sync immediately (no settle needed;
+            # session files are written atomically by OpenClaw).
+            current_sessions_marker = sessions_marker()
+            if current_sessions_marker != last_sessions_marker:
+                return ("sessions", current_config_marker)
 
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -698,10 +705,14 @@ def loop() -> int:
     config_marker = file_marker(OPENCLAW_CONFIG_FILE)
     last_sessions_sync_time = 0.0
 
+    sync_trigger = "startup"
+
     while not STOP_EVENT.is_set():
         try:
             sync_started_config_marker = file_marker(OPENCLAW_CONFIG_FILE)
             last_fingerprint, last_marker = sync_once(last_fingerprint, last_marker)
+            if sync_trigger == "sessions":
+                last_sessions_sync_time = time.monotonic()
             config_marker = file_marker(OPENCLAW_CONFIG_FILE)
 
             if config_marker != sync_started_config_marker:
@@ -727,6 +738,7 @@ def loop() -> int:
         if trigger == "sessions":
             last_sessions_sync_time = time.monotonic()
             print("Session files changed; syncing immediately.")
+        sync_trigger = trigger
 
     return 0
 
