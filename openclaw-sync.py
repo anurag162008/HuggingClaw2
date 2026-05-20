@@ -115,6 +115,11 @@ def copy_state_entry_with_retry(source_path: Path, backup_path: Path, attempts: 
     last_exc: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
+            if backup_path.exists():
+                if backup_path.is_dir():
+                    shutil.rmtree(backup_path, ignore_errors=True)
+                else:
+                    backup_path.unlink(missing_ok=True)
             if source_path.is_dir():
                 shutil.copytree(source_path, backup_path)
                 return
