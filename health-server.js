@@ -632,7 +632,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (!requireAuth(req, res)) return;
     // Inject the Jupyter token so JupyterLab skips its own login screen.
-    const jToken = (process.env.JUPYTER_TOKEN || "").trim();
+    // Mirror start.sh logic: JUPYTER_TOKEN falls back to GATEWAY_TOKEN when
+    // unset or still the insecure default — that's what Jupyter was started with.
+    const rawJupyterToken = (process.env.JUPYTER_TOKEN || "").trim();
+    const jToken = (!rawJupyterToken || rawJupyterToken === "huggingface") ? GATEWAY_TOKEN : rawJupyterToken;
     return proxyHTTP(req, res, JUPYTER_HOST, JUPYTER_PORT, {
       publicPrefix: JUPYTER_BASE,
       // Jupyter is started with --ServerApp.base_url=/terminal/, so keep the
